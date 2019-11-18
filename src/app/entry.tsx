@@ -31,7 +31,8 @@ Promise
         BackgroundClient.waitForBackgroundReady(),
     ])
     .then(([ uiConfig, settings, backgroundReady ]) => {
-        setLocale(uiConfig.locale)
+        // setLocale(uiConfig.locale)
+        setLocale('bg')
         initForegroundService()
         store.dispatch(initAction(uiConfig, settings))
 
