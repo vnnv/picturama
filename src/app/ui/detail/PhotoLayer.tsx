@@ -8,7 +8,6 @@ import { bindMany } from 'common/util/LangUtil'
 import { ExifOrientation } from 'common/CommonTypes'
 import { profileDetailView } from 'common/LogConstants'
 
-import { showError } from 'app/ErrorPresenter'
 import PhotoCanvas from 'app/renderer/PhotoCanvas'
 import { Texture } from 'app/renderer/WebGLCanvas'
 
@@ -18,17 +17,21 @@ import TextureCache from './TextureCache'
 import './PhotoLayer.less'
 
 
+export type PhotoLayerLoadingState = 'loading' | 'error' | 'done'
+
+
 export interface Props {
     className?: any
     style?: any
     mode: DetailMode
-    canvasSize: Size
+    /** The size of the detail body (in px) */
+    bodySize: Size
     src: string
     srcPrev: string | null
     srcNext: string | null
     orientation: ExifOrientation
     cameraMetrics: CameraMetrics | null
-    onLoadingChange(loading: boolean): void
+    onLoadingStateChange(loadingState: PhotoLayerLoadingState): void
     onTextureSizeChange(textureSize: Size): void
 }
 
@@ -45,7 +48,7 @@ export default class PhotoLayer extends React.Component<Props, State> {
     private canvasSrc: string | null = null
     private deferredHideCanvasTimeout: NodeJS.Timer | null
 
-    private prevLoading: boolean | null = null
+    private prevLoadingState: PhotoLayerLoadingState | null = null
 
 
     constructor(props: Props) {
@@ -87,10 +90,10 @@ export default class PhotoLayer extends React.Component<Props, State> {
         this.updateCanvas(prevProps, prevState)
     }
 
-    private setLoading(loading: boolean) {
-        if (loading !== this.prevLoading) {
-            this.prevLoading = loading
-            this.props.onLoadingChange(loading)
+    private setLoadingState(loadingState: PhotoLayerLoadingState) {
+        if (loadingState !== this.prevLoadingState) {
+            this.prevLoadingState = loadingState
+            this.props.onLoadingStateChange(loadingState)
         }
     }
 
@@ -110,9 +113,8 @@ export default class PhotoLayer extends React.Component<Props, State> {
         textureCache.setSourcesToFetch([ props.src, props.srcNext, props.srcPrev ])
 
         if (textureCache.hasTextureError(props.src)) {
-            showError('Showing photo failed: ' + props.src)
             canvas.getElement().style.display = 'none'
-            this.setLoading(false)
+            this.setLoadingState('error')
             return
         }
 
@@ -128,9 +130,10 @@ export default class PhotoLayer extends React.Component<Props, State> {
             canvasChanged = true
         }
 
-        if (props.canvasSize !== prevProps.canvasSize) {
-            canvas.setSize(props.canvasSize)
-            canvasChanged = true
+        if (props.bodySize !== prevProps.bodySize) {
+            const canvasElem = canvas.getElement()
+            canvasElem.style.width  = `${props.bodySize.width}px`
+            canvasElem.style.height = `${props.bodySize.height}px`
         }
 
         if (props.mode !== prevProps.mode || props.cameraMetrics !== prevProps.cameraMetrics) {
@@ -141,6 +144,7 @@ export default class PhotoLayer extends React.Component<Props, State> {
         if (props.cameraMetrics !== prevProps.cameraMetrics) {
             if (props.cameraMetrics) {
                 canvas
+                    .setSize(props.cameraMetrics.canvasSize)
                     .setProjectionMatrix(props.cameraMetrics.projectionMatrix)
                     .setCameraMatrix(props.cameraMetrics.cameraMatrix)
             }
@@ -154,15 +158,15 @@ export default class PhotoLayer extends React.Component<Props, State> {
                     this.deferredHideCanvasTimeout = null
                 }
                 canvas.update()
-                canvas.getElement().style.display = null
-                this.setLoading(false)
+                canvas.getElement().style.display = 'block'
+                this.setLoadingState('done')
             } else if (!this.deferredHideCanvasTimeout) {
                 // We hide the old image of an invalid canvas with a little delay,
                 // in order to avoid blinking if loading the next texture and photo work is fast
                 this.deferredHideCanvasTimeout = setTimeout(() => {
                     this.deferredHideCanvasTimeout = null
                     canvas.getElement().style.display = 'none'
-                    this.setLoading(true)
+                    this.setLoadingState('loading')
                 }, 100)
             }
         }
@@ -174,7 +178,7 @@ export default class PhotoLayer extends React.Component<Props, State> {
             <div
                 ref="main"
                 className={classNames(props.className, 'PhotoLayer')}
-                style={{ ...props.style, width: props.canvasSize.width, height: props.canvasSize.height }}
+                style={{ ...props.style, width: props.bodySize.width, height: props.bodySize.height }}
             />
         )
     }

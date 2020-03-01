@@ -2,6 +2,7 @@ import { BrowserWindow, ipcMain, dialog } from 'electron'
 
 import { UiConfig } from 'common/CommonTypes'
 import { assertMainProcess } from 'common/util/ElectronUtil'
+import { encodeIpcError } from 'common/util/IpcUtil'
 
 import AppWindowController from 'background/AppWindowController'
 import { exportPhoto } from 'background/ExportController'
@@ -35,14 +36,13 @@ export function init(mainWin: BrowserWindow, newUiConfig: UiConfig) {
             })
     })
 
-    ipcMain.on('executeBackgroundAction', (event, callId, action, params) => {
+    ipcMain.on('executeBackgroundAction', (event, callId: number, action: string, params: any) => {
         executeBackgroundAction(action, params)
             .then(result => {
                 mainWin.webContents.send('onBackgroundActionDone', callId, null, result)
             },
             error => {
-                const msg = (error instanceof Error) ? error.message : error
-                mainWin.webContents.send('onBackgroundActionDone', callId, msg, null)
+                mainWin.webContents.send('onBackgroundActionDone', callId, encodeIpcError(error), null)
             })
     })
 }
@@ -67,10 +67,12 @@ async function executeBackgroundAction(action: string, params: any): Promise<any
     } else if (action === 'getFileSize') {
         const stat = await fsStat(params.path)
         return stat.size
-    } else if (action === 'selectDirectories') {
-        return new Promise(resolve =>
-            dialog.showOpenDialog(AppWindowController.getAppWindow(), { properties: [ 'openDirectory', 'multiSelections' ] }, resolve)
-        )
+    } else if (action === 'selectScanDirectories') {
+        const result = await dialog.showOpenDialog(AppWindowController.getAppWindow(), { properties: [ 'openDirectory', 'multiSelections' ] })
+        return result.canceled ? undefined : result.filePaths
+    } else if (action === 'selectExportDirectory') {
+        const result = await dialog.showOpenDialog(AppWindowController.getAppWindow(), { properties: [ 'openDirectory', 'createDirectory' ] })
+        return result.canceled ? undefined : result.filePaths[0]
     } else if (action === 'startImport') {
         startImport()
     } else if (action === 'toggleImportPaused') {
