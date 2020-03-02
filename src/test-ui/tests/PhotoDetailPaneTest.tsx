@@ -9,6 +9,7 @@ import { testBigPhoto } from 'test-ui/util/MockData'
 const defaultProps: Props = {
     style: { width: '100%', height: '100%', overflow: 'hidden' },
     isActive: true,
+    devicePixelRatio: window.devicePixelRatio,
     sectionId: 'dummy',
     photo: testBigPhoto,
     photoPrev: null,
@@ -34,15 +35,24 @@ const defaultProps: Props = {
 
 
 addSection('PhotoDetailPane')
+    .add('normal', context => (
+        <PhotoDetailPane
+            {...defaultProps}
+            devicePixelRatio={window.devicePixelRatio}
+        />
+    ))
     .add('loading', context => (
         <PhotoDetailPane
             {...defaultProps}
+            devicePixelRatio={window.devicePixelRatio}
             photoWork={null}
             photoDetail={null}
         />
     ))
-    .add('done', context => (
+    .add('error', context => (
         <PhotoDetailPane
             {...defaultProps}
+            devicePixelRatio={window.devicePixelRatio}
+            photo={{ ...testBigPhoto, master_filename: 'missing-master' }}
         />
     ))
