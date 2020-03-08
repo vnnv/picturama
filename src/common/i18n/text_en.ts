@@ -3,6 +3,8 @@ export default {
     common_cancel: 'Cancel',
     common_backToLibrary: 'Back to library',
     common_ratio: '{0} of {1}',
+    common_error_photoNotExisting: 'Photo is no longer there',
+    common_error_photoNotExisting_desc: 'This photo is no longer where it was on the last scan. Maybe it has been moved, deleted or it is on a disk that is no longer connected.',
 
     CropModeToolbar_aspect_free: 'Free',
     CropModeToolbar_aspect_original: 'Original',
@@ -86,6 +88,8 @@ export default {
     LibraryTopBar_moveToTrash: 'Move to trash of operating system',
     LibraryTopBar_emptyTrash: 'Empty trash',
 
+    Picture_error_createThumbnail: 'Creating thumbnail failed',
+
     PhotoActionButtons_movedToTrash_one: 'Moved photo to trash',
     PhotoActionButtons_movedToTrash_more: 'Moved {0} photos to trash',
     PhotoActionButtons_restoredFromTrash_one: 'Restored photo from trash',
@@ -103,6 +107,7 @@ export default {
     PhotoInfo_copyPath: 'Copy path',
     PhotoInfo_noSelection_title: 'No photo selected',
     PhotoInfo_noSelection_message: 'Please select a photo on the left.',
+    PhotoInfo_error_fetchPhotoSize: 'Getting photo size failed',
 
     PhotoDetailPane_prevPhoto: 'Previous photo',
     PhotoDetailPane_nextPhoto: 'Next photo',

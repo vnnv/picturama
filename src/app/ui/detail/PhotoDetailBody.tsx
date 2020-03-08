@@ -1,15 +1,16 @@
 import React from 'react'
 import classnames from 'classnames'
-import { ResizeSensor, IResizeEntry, Spinner } from '@blueprintjs/core'
+import { ResizeSensor, IResizeEntry, Spinner, NonIdealState, Classes } from '@blueprintjs/core'
 
 import { ExifOrientation, PhotoWork, PhotoSectionId, Photo, PhotoId } from 'common/CommonTypes'
+import { msg } from 'common/i18n/i18n'
 import { CameraMetrics, CameraMetricsBuilder, RequestedPhotoPosition, PhotoPosition } from 'common/util/CameraMetrics'
 import { Size, zeroSize, Insets, zeroInsets, Rect } from 'common/util/GeometryTypes'
 import { bindMany, isShallowEqual } from 'common/util/LangUtil'
 
 import CropModeLayer from './CropModeLayer'
 import { DetailMode } from './DetailTypes'
-import PhotoLayer from './PhotoLayer'
+import PhotoLayer, { PhotoLayerLoadingState } from './PhotoLayer'
 import ViewModeLayer from './ViewModeLayer'
 
 import './PhotoDetailBody.less'
@@ -23,6 +24,7 @@ export interface Props {
     style?: any
     topBarClassName: string
     bodyClassName: string
+    devicePixelRatio: number
     isActive: boolean
     mode: DetailMode
     isShowingInfo: boolean
@@ -53,8 +55,9 @@ interface State {
     prevMode: DetailMode | null
     prevSrc: string | null
     prevPhotoWork: PhotoWork | null
-    loading: boolean
-    canvasSize: Size
+    loadingState: PhotoLayerLoadingState | null
+    /** The size of the detail body (in px) */
+    bodySize: Size
     textureSize: Size | null
     boundsRect: Rect | null
     photoPosition: RequestedPhotoPosition
@@ -68,15 +71,15 @@ export default class PhotoDetailBody extends React.Component<Props, State> {
 
     constructor(props: Props) {
         super(props)
-        bindMany(this, 'onLoadingChange', 'onResize', 'onTextureSizeChange', 'setPhotoPosition', 'enterCropMode',
+        bindMany(this, 'onLoadingStateChange', 'onResize', 'onTextureSizeChange', 'setPhotoPosition', 'enterCropMode',
             'onPhotoWorkEdited', 'onCropDone')
         const cameraMetricsBuilder = new CameraMetricsBuilder()
         this.state = {
             prevMode: null,
             prevSrc: null,
             prevPhotoWork: null,
-            loading: true,
-            canvasSize: zeroSize,
+            loadingState: null,
+            bodySize: zeroSize,
             textureSize: null,
             boundsRect: null,
             photoPosition: 'contain',
@@ -122,8 +125,8 @@ export default class PhotoDetailBody extends React.Component<Props, State> {
 
         if (prevState.textureSize && nextProps.photoWork) {
             const cameraMetrics = cameraMetricsBuilder
-                .setCanvasSize(prevState.canvasSize)
                 .setTextureSize(prevState.textureSize)
+                .setDisplaySize(prevState.bodySize, 1 / nextProps.devicePixelRatio)
                 .setBoundsRect(nextBoundsRect)
                 .setExifOrientation(nextProps.orientation)
                 .setPhotoWork(nextEditedPhotoWork || nextProps.photoWork)
@@ -139,16 +142,16 @@ export default class PhotoDetailBody extends React.Component<Props, State> {
         return nextState
     }
 
-    private onLoadingChange(loading: boolean) {
-        this.setState({ loading })
+    private onLoadingStateChange(loadingState: PhotoLayerLoadingState) {
+        this.setState({ loadingState })
     }
 
     private onResize(entries: IResizeEntry[]) {
         const { state } = this
         const contentRect = entries[0].contentRect
-        if (state.canvasSize.width !== contentRect.width || state.canvasSize.height !== contentRect.height) {
-            const canvasSize: Size = { width: contentRect.width, height: contentRect.height }
-            this.setState({ canvasSize })
+        if (state.bodySize.width !== contentRect.width || state.bodySize.height !== contentRect.height) {
+            const bodySize: Size = { width: contentRect.width, height: contentRect.height }
+            this.setState({ bodySize })
         }
     }
 
@@ -199,13 +202,13 @@ export default class PhotoDetailBody extends React.Component<Props, State> {
                 <PhotoLayer
                     className={props.bodyClassName}
                     mode={props.mode}
-                    canvasSize={state.canvasSize}
+                    bodySize={state.bodySize}
                     src={props.src}
                     srcPrev={props.srcPrev}
                     srcNext={props.srcNext}
                     orientation={props.orientation}
                     cameraMetrics={state.cameraMetrics}
-                    onLoadingChange={this.onLoadingChange}
+                    onLoadingStateChange={this.onLoadingStateChange}
                     onTextureSizeChange={this.onTextureSizeChange}
                 />
                 {props.mode === 'view' &&
@@ -246,8 +249,16 @@ export default class PhotoDetailBody extends React.Component<Props, State> {
                         onDone={this.onCropDone}
                     />
                 }
-                {state.loading &&
+                {state.loadingState === 'loading' &&
                     <Spinner className='PhotoDetailBody-spinner' size={Spinner.SIZE_LARGE} />
+                }
+                {state.loadingState === 'error' &&
+                    <NonIdealState
+                        className={classnames('PhotoDetailBody-error', Classes.DARK)}
+                        icon='delete'
+                        title={msg('common_error_photoNotExisting')}
+                        description={msg('common_error_photoNotExisting_desc')}
+                    />
                 }
             </div>
         )
