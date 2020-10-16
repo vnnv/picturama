@@ -1,116 +1,102 @@
-import fs from 'fs'
-import { ipcMain, Menu, MenuItemConstructorOptions, BrowserWindow } from 'electron'
+import { ipcMain, Menu, BrowserWindow } from 'electron'
 
 import config from 'common/config'
-import { bindMany } from 'common/util/LangUtil'
+import { msg } from 'common/i18n/i18n'
 
 import ForegroundClient from 'background/ForegroundClient'
 import { startImport } from 'background/ImportController'
 import AppWindowController from 'background/AppWindowController'
 
 
-type MenuSpec = {
-    label: string,
-    submenu: {
-        id?: string
-        label: string
-        enabled?: boolean
-        accelerator?: string
-        click?: string
-    }[]
-}
-
-const template = JSON.parse(fs.readFileSync(config.menuPath)) as { menu: MenuSpec[] }
-
+/**
+ * The main menu. Only used on MacOS.
+ */
 class MainMenu {
 
-    private mainWindow: BrowserWindow
-    private uiTesterWindow: BrowserWindow | null = null
-    private template: { label: string, submenu: MenuItemConstructorOptions[] }[]
     private menu: Menu
 
 
-    constructor(mainWindow: BrowserWindow) {
-        this.mainWindow = mainWindow
-
-        bindMany(this, 'render', 'showSettings', 'scan', 'close', 'reload', 'fullscreen', 'toggleDevTools', 'toggleUiTester', 'export')
-
+    constructor(private mainWindow: BrowserWindow) {
         // TODO: Revive Legacy code of 'version' feature
         //this.fixMissingVersions = this.fixMissingVersions.bind(this)
 
-        this.template = template.menu.map(menu => {
-            return {
-                label: menu.label,
-                submenu: menu.submenu.map(submenu => {
-                    if (submenu.click)
-                        submenu.click = this[submenu.click]
-
-                    if (submenu.label.toLowerCase() === 'version')
-                        submenu.label = `Version ${config.version}`
-
-                    return submenu as any as MenuItemConstructorOptions
-                })
+        this.menu = Menu.buildFromTemplate([
+            {
+                label: 'Picturama',
+                submenu: [
+                    {
+                        label: msg('MainMenu_version', config.version),
+                        enabled: false
+                    },
+                    {
+                        label: msg('MainMenu_settings'),
+                        click: () => ForegroundClient.showSettings()
+                    },
+                    {
+                        label: msg('MainMenu_quit'),
+                        accelerator: 'Cmd+Q',
+                        click: () => this.mainWindow.close()
+                    }
+                ]
+            },
+            {
+                label: msg('MainMenu_file'),
+                submenu: [
+                    {
+                        id: 'export',
+                        label: msg('MainMenu_export'),
+                        accelerator: 'Cmd+Shift+E',
+                        enabled: false,
+                        click: () => this.mainWindow.webContents.send('exportClicked', true)
+                    },
+                    {
+                        label: msg('MainMenu_scan'),
+                        accelerator: 'Cmd+R',
+                        click: startImport
+                    }
+                ]
+            },
+            {
+                label: msg('MainMenu_view'),
+                submenu: [
+                    {
+                        label: msg('MainMenu_toggleFullScreen'),
+                        accelerator: 'F11',
+                        click: () => AppWindowController.toggleFullScreen()
+                    }
+                ]
+            },
+            {
+                label: msg('MainMenu_developer'),
+                submenu: [
+                    {
+                        label: msg('MainMenu_toggleDevTools'),
+                        accelerator: 'Cmd+Alt+I',
+                        click: () => this.mainWindow.webContents.toggleDevTools()
+                    },
+                    {
+                        label: msg('MainMenu_toggleUiTester'),
+                        accelerator: 'Cmd+Alt+T',
+                        click: () => AppWindowController.toggleUiTester()
+                    },
+                    {
+                        label: msg('MainMenu_reloadUi'),
+                        accelerator: 'Shift+Cmd+R',
+                        click: () => AppWindowController.reloadUi()
+                    }
+                ]
             }
-        })
+        ])
+        Menu.setApplicationMenu(this.menu)
 
         ipcMain.on('toggleExportMenu', (e, state) => {
             this.menu.getMenuItemById('export').enabled = state
         })
-
-        this.render()
-    }
-
-    showSettings() {
-        ForegroundClient.showSettings()
-    }
-
-    scan() {
-        startImport()
-    }
-
-    close() {
-        this.mainWindow.close()
-    }
-
-    reload() {
-        this.mainWindow.reload()
-        if (this.uiTesterWindow) {
-            this.uiTesterWindow.reload()
-        }
-    }
-
-    fullscreen() {
-        AppWindowController.toggleFullScreen()
-    }
-
-    toggleDevTools() {
-        this.mainWindow.webContents.toggleDevTools()
-    }
-
-    toggleUiTester() {
-        if (this.uiTesterWindow) {
-            this.uiTesterWindow.close()
-            this.uiTesterWindow = null
-        } else {
-            this.uiTesterWindow = new BrowserWindow({
-                title: 'UI Tester',
-                webPreferences: {
-                    nodeIntegration: true,
-                }
-            })
-            this.uiTesterWindow.maximize()
-            this.uiTesterWindow.loadURL('file://' + __dirname + '/test-ui.html')
-            this.uiTesterWindow.webContents.toggleDevTools()
-        }
-    }
-
-    export() {
-        this.mainWindow.webContents.send('exportClicked', true)
     }
 
     // TODO: Revive Legacy code of 'version' feature
     /*
-    fixMissingVersions() {
+    private fixMissingVersions() {
         Version
             .query(qb =>
                 qb
@@ -141,10 +127,6 @@ class MainMenu {
     }
     */
 
-    render() {
-        this.menu = Menu.buildFromTemplate(this.template)
-        Menu.setApplicationMenu(this.menu)
-    }
 }
 
 export default MainMenu

@@ -6,6 +6,9 @@ export default {
     common_error_photoNotExisting: 'Photo is no longer there',
     common_error_photoNotExisting_desc: 'This photo is no longer where it was on the last scan. Maybe it has been moved, deleted or it is on a disk that is no longer connected.',
 
+    App_error_noWebGL_title: 'No WebGL',
+    App_error_noWebGL_desc: 'Picturama needs a graphic card with 3D acceleration in order to function. Please have a look in the system settings whether you can activate 3D acceleration and restart Picturama.',
+
     CropModeToolbar_aspect_free: 'Free',
     CropModeToolbar_aspect_original: 'Original',
     CropModeToolbar_aspect_square: 'Square',
@@ -88,6 +91,19 @@ export default {
     LibraryTopBar_moveToTrash: 'Move to trash of operating system',
     LibraryTopBar_emptyTrash: 'Empty trash',
 
+    MainMenu_version: 'Version {0}',
+    MainMenu_settings: 'Settings',
+    MainMenu_quit: 'Quit',
+    MainMenu_file: 'File',
+    MainMenu_export: 'Export photos',
+    MainMenu_scan: 'Scan for images',
+    MainMenu_view: 'View',
+    MainMenu_toggleFullScreen: 'Toggle Fullscreen',
+    MainMenu_developer: 'Developer',
+    MainMenu_toggleDevTools: 'Toggle development tools',
+    MainMenu_toggleUiTester: 'Toggle UI Tester',
+    MainMenu_reloadUi: 'Reload UI',
+
     Picture_error_createThumbnail: 'Creating thumbnail failed',
 
     PhotoActionButtons_movedToTrash_one: 'Moved photo to trash',
@@ -105,8 +121,18 @@ export default {
     PhotoInfo_title: 'Info',
     PhotoInfo_showInFolder: 'Show photo in folder',
     PhotoInfo_copyPath: 'Copy path',
+    PhotoInfo_copyCoordinates: 'Copy coordinates',
     PhotoInfo_noSelection_title: 'No photo selected',
     PhotoInfo_noSelection_message: 'Please select a photo on the left.',
+    PhotoInfo_exifData: 'Exif data',
+    PhotoInfo_show: 'show',
+    PhotoInfo_hide: 'hide',
+    PhotoInfo_showAll: 'show all',
+    PhotoInfo_showLess: 'show less',
+    PhotoInfo_andMore: 'and {0} more',
+    PhotoInfo_exifTitle_ifd0: 'Image (IFD0)',
+    PhotoInfo_exifTitle_ifd1: 'Thumbnail (IFD1)',
+    PhotoInfo_noValue: 'Photo has no {0}',
     PhotoInfo_error_fetchPhotoSize: 'Getting photo size failed',
 
     PhotoDetailPane_prevPhoto: 'Previous photo',

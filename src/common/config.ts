@@ -19,22 +19,20 @@ if (process.env.PICTURAMA_DEV_MODE) {
     picturamaHomeDir = `${os.homedir()}/.picturama`
 }
 
-const menusFolder = `${picturamaAppDir}/menus`
 const platform = os.platform()
 
 export default {
     version: npmPackage.version,
     platform,
     acceptedRawExtensions: [ 'raf', 'cr2', 'arw', 'dng' ],
+    acceptedHeicExtensions: [ 'heic', 'heif' ],
     acceptedNonRawExtensions: [ 'png', 'jpg', 'jpeg', 'tif', 'tiff', 'webp' ],
     watchedFormats: /([$#\w\d]+)-([$#\w\dèé]+)-(\d+)\.(JPEG|JPG|PNG|PPM|TIFF|WEBP)/i,
     workExt: 'webp' as  PhotoRenderFormat,
     /** The home directory of version 1.0.0 and before (where Picturama's name was Ansel) */
     anselHomeDir,
     picturamaHomeDir,
-    menusFolder,
     keymapsFolder: `${picturamaAppDir}/keymaps`,
-    menuPath: `${menusFolder}/${platform}.json`,
     dbFile: `${picturamaHomeDir}/db.sqlite3`,
     dbMigrationsFolder: `${picturamaAppDir}/migrations`,
     settings: `${picturamaHomeDir}/settings.json`,

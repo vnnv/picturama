@@ -1,49 +1,53 @@
-import ExifParser from 'exif-parser'
+import exifr from 'exifr'
 
-import { ExifOrientation } from 'common/CommonTypes'
-import { isArray } from 'common/util/LangUtil'
+import { MetaData, ExifData, allExifSegments } from 'common/CommonTypes'
 
-import { fsStat, fsReadFile } from 'background/util/FileUtil'
+import { fsStat } from 'background/util/FileUtil'
 
 
-export interface MetaData {
-    imgWidth?:     number
-    imgHeight?:    number
-    camera?:       string
-    exposureTime?: number
-    iso?:          number
-    aperture?:     number
-    focalLength?:  number
-    createdAt?:    Date
-    /** Details on orientation: https://www.impulseadventure.com/photo/exif-orientation.html */
-    orientation:   ExifOrientation
-    tags:          string[]
+// exifr can improve performance, if options object is cached
+// See: https://github.com/MikeKovarik/exifr#tips-for-better-performance
+const metadataExifrOptions = {
+    translateValues: false,
+        // We need `translateValues: false`, because we want a numeric `Orientation`, not something like `'Horizontal (normal)'`
+    exif: true,
+    xmp: true,
+}
+const fullExifrOptions = {
+    mergeOutput: false,
+    tiff: true,
+}
+for (const segment of allExifSegments) {
+    fullExifrOptions[segment] = true
 }
 
 
-export function readMetadataOfImage(imagePath: string): Promise<MetaData> {
-    return readExifOfImage(imagePath)
-        .then(extractMetaDataFromExif)
-        .catch(error => {
-            if (error.message !== 'Invalid JPEG section offset') {
-                console.log(`Reading EXIF data from ${imagePath} failed - continuing without. Error: ${error.message}`)
-            }
-            return fsStat(imagePath)
-                .then(stat => ({
-                    createdAt: stat.birthtime,
-                    orientation: 1,
-                    tags: []
-                }))
-        })
+export async function readMetadataOfImage(imagePath: string): Promise<MetaData> {
+    let metaData: MetaData | null = null
+    try {
+        const exifTags = await exifr.parse(imagePath, metadataExifrOptions)
+        if (exifTags) {
+            metaData = extractMetaDataFromExif(exifTags)
+        }
+    } catch (error) {
+        console.log(`Reading EXIF data from ${imagePath} failed - continuing without. Error: ${error.message}`)
+    }
+
+    if (!metaData) {
+        const stat = await fsStat(imagePath)
+        metaData = {
+            createdAt: stat.birthtime,
+            orientation: 1,
+            tags: []
+        }
+    }
+
+    return metaData
 }
 
 
-function readExifOfImage(imagePath) {
-    return fsReadFile(imagePath)
-        .then(buffer => {
-            const parser = ExifParser.create(buffer) as any
-            return parser.parse()
-        })
+export function getExifData(imagePath: string): Promise<ExifData | null> {
+    return exifr.parse(imagePath, fullExifrOptions)
 }
 
 
@@ -53,10 +57,7 @@ const simplifiedBrandNames: { [K in string]: string } = {
     'OLYMPUS IMAGING CORP.': 'Olympus'
 }
 
-function extractMetaDataFromExif(exifData): MetaData {
-    const exifTags = exifData.tags
-    const rawDate = exifTags.DateTimeOriginal || exifTags.DateTime || exifTags.CreateDate || exifTags.ModifyDate
-
+function extractMetaDataFromExif(exifTags: { [K: string]: any }): MetaData {
     // Examples:
     //   - Make = 'Canon', Model = 'Canon EOS 30D'  ->  'Canon EOS 30D'
     //   - Make = 'SONY', Model = 'DSC-N2'  ->  'SONY DSC-N2'
@@ -82,28 +83,24 @@ function extractMetaDataFromExif(exifData): MetaData {
     let iso: number | undefined = undefined
     if (typeof exifTags.ISO === 'number') {
         iso = exifTags.ISO
-    } else if (isArray(exifTags.ISO) && typeof exifTags.ISO[0] === 'number') {
-        // Sometimes `exifTags.ISO` is something like `[ 200, 0 ]`
+    } else if (exifTags.ISO instanceof Uint16Array && exifTags.ISO.length > 0) {
+        // Sometimes `exifTags.ISO` is something like `new Uint16Array([ 200, 0 ])`
         iso = exifTags.ISO[0]
     }
 
     const metaData: MetaData = {
-        imgWidth:     (exifData.imageSize && exifData.imageSize.width)  || exifTags.ExifImageWidth,
-        imgHeight:    (exifData.imageSize && exifData.imageSize.height) || exifTags.ExifImageHeight,
+        imgWidth:     exifTags.ImageWidth || exifTags.ExifImageWidth,
+        imgHeight:    exifTags.ImageHeight || exifTags.ExifImageHeight,
         camera:       camera || undefined,
         exposureTime: exifTags.ExposureTime,
         iso,
         aperture:     exifTags.FNumber,
         focalLength:  exifTags.FocalLength,
-        createdAt:    rawDate ? new Date(rawDate * 1000) : undefined,
+        createdAt:    exifTags.DateTimeOriginal || exifTags.DateTime || exifTags.CreateDate || exifTags.ModifyDate,
         orientation:  exifTags.Orientation || 1,
             // Details on orientation: https://www.impulseadventure.com/photo/exif-orientation.html
         tags:         []
     }
-
-    // TODO: Translate from `exiv2` result into `exif-parser` result
-    //if (exData.hasOwnProperty('Xmp.dc.subject'))
-    //  metaData.tags = exData['Xmp.dc.subject'].split(', ');
 
     return metaData
 }

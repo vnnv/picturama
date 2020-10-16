@@ -21,7 +21,6 @@ export interface Props {
     aspectRatioType: AspectRatioType
     isAspectRatioLandscape: boolean
     photoWork: PhotoWork | null
-    toggleMaximized(): void
     setAspectRatio(aspectRatioType: AspectRatioType, isLandscape: boolean | null): void
     onPhotoWorkEdited(photoWork: PhotoWork): void
     onDone(): void
@@ -93,30 +92,29 @@ export default class CropModeToolbar extends React.Component<Props> {
             <Toolbar
                 className={classnames(props.className, 'CropModeToolbar')}
                 isLeft={true}
-                onBackgroundDoubleClick={props.toggleMaximized}
+                isRight={true}
             >
-                <span className='pull-right'>
-                    <Popover
-                        content={this.renderAspectMenu()}
-                        position={Position.BOTTOM}
-                    >
-                        <Button
-                            minimal={true}
-                            icon={
-                                <MdImageAspectRatio
-                                    color={props.aspectRatioType === 'free' ? undefined : red} className={SVG_ICON_CLASS}
-                                />
-                            }
-                        />
-                    </Popover>
-                    <RotateButtonGroup disabled={!props.photoWork} onRotate={this.onRotate}/>
-                    <Button disabled={!hasGeometryOperations} onClick={this.onReset}>
-                        <span className={Classes.BUTTON_TEXT}>{msg('CropModeToolbar_reset')}</span>
-                    </Button>
-                    <Button intent='success' onClick={props.onDone}>
-                        <span className={Classes.BUTTON_TEXT}>{msg('CropModeToolbar_done')}</span>
-                    </Button>
-                </span>
+                <Toolbar.Spacer/>
+                <Popover
+                    content={this.renderAspectMenu()}
+                    position={Position.BOTTOM}
+                >
+                    <Button
+                        minimal={true}
+                        icon={
+                            <MdImageAspectRatio
+                                color={props.aspectRatioType === 'free' ? undefined : red} className={SVG_ICON_CLASS}
+                            />
+                        }
+                    />
+                </Popover>
+                <RotateButtonGroup disabled={!props.photoWork} onRotate={this.onRotate}/>
+                <Button disabled={!hasGeometryOperations} onClick={this.onReset}>
+                    <span className={Classes.BUTTON_TEXT}>{msg('CropModeToolbar_reset')}</span>
+                </Button>
+                <Button intent='success' onClick={props.onDone}>
+                    <span className={Classes.BUTTON_TEXT}>{msg('CropModeToolbar_done')}</span>
+                </Button>
             </Toolbar>
         )
     }

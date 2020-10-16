@@ -1,5 +1,48 @@
-import CancelablePromise from '../../common/util/CancelablePromise'
-import Profiler from '../../common/util/Profiler'
+import { mat4 } from 'gl-matrix'
+import heic2any from 'heic2any'
+import exifr from 'exifr'
+
+import Profiler from 'common/util/Profiler'
+import { ExifOrientation } from 'common/CommonTypes'
+import config from 'common/config'
+
+
+const exifrOrientationOptions = {
+    translateValues: false,
+    pick: [ 'Orientation' ],
+}
+
+
+const heicExtensionRE = new RegExp(`\\.(${config.acceptedHeicExtensions.join('|')})$`, 'i')
+
+
+// Workaround: Prevent tree-shaking from removing `heic2any`.
+heic2any['__dummy'] = 1
+
+function decodeBuffer(buffer: ArrayBuffer): Promise<ImageData[]> {
+	return new Promise((resolve, reject) => {
+		const id = (Math.random() * new Date().getTime()).toString();
+		const message = { id, buffer };
+		((window as any).__heic2any__worker as Worker).postMessage(message);
+		((window as any).__heic2any__worker as Worker).addEventListener(
+			"message",
+			(message) => {
+				if (message.data.id === id) {
+					if (message.data.error) {
+						return reject(message.data.error);
+					}
+					return resolve(message.data.imageDataArr);
+				}
+			}
+		);
+	});
+}
+
+
+export function hasWebGLSupport(): boolean {
+    const canvas = document.createElement('canvas')
+    return !!canvas.getContext('webgl2')
+}
 
 
 /**
@@ -57,37 +100,73 @@ export default class WebGLCanvas {
         return new GraphicBuffer(gl, bufferId, gl.FLOAT, componentSize, data.length / componentSize)
     }
 
-    createTextureFromSrc(src: string, srcFormat: number = WebGLRenderingContext.RGB, srcType: number = WebGLRenderingContext.UNSIGNED_BYTE, profiler: Profiler | null = null): CancelablePromise<Texture> {
+    async createTextureFromSrc(src: string, srcFormat: number = WebGLRenderingContext.RGB, srcType: number = WebGLRenderingContext.UNSIGNED_BYTE, profiler: Profiler | null = null): Promise<Texture> {
         // For details see: https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Using_textures_in_WebGL
 
         const gl = this.gl
-        return new CancelablePromise<Texture>((resolve, reject) => {
-            let image: HTMLImageElement | HTMLCanvasElement = new Image()
-            image.onload = () => {
-                if (profiler) profiler.addPoint('Loaded image')
-                const textureId = this.gl.createTexture()
-                if (!textureId) {
-                    throw new Error('Creating WebGL texture failed')
+
+        let textureSource: HTMLImageElement | Uint8ClampedArray
+        let width: number
+        let height: number
+        let orientation: ExifOrientation
+        if (heicExtensionRE.test(src)) {
+            const encodedHeicBuffer = await (await fetch(src)).arrayBuffer()
+            if (profiler) profiler.addPoint('Fetch encoded heic data')
+            const imageData = await decodeBuffer(encodedHeicBuffer)
+            if (profiler) profiler.addPoint('Decoded heic data')
+
+            textureSource = imageData[0].data
+            width = imageData[0].width
+            height = imageData[0].height
+            orientation = ExifOrientation.Up
+        } else {
+            const image = new Image()
+            let imageSrc = src
+            await new Promise((resolve, reject) => {
+                image.onload = resolve
+                image.onerror = errorEvt => {
+                    reject(new Error(`Loading image failed: ${src}`))
                 }
-                gl.bindTexture(gl.TEXTURE_2D, textureId)
+                image.src = imageSrc
+            })
+            textureSource = image
+            if (profiler) profiler.addPoint('Loaded image')
 
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST)
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-
-                gl.texImage2D(gl.TEXTURE_2D, 0, this.internalFormat, srcFormat, srcType, image)
-                gl.generateMipmap(gl.TEXTURE_2D);
-                gl.bindTexture(gl.TEXTURE_2D, null);
-
-                if (profiler) profiler.addPoint('Created texture')
-                resolve(new Texture(gl, textureId, image.width, image.height))
+            let exifData: any = null
+            try {
+                exifData = await exifr.parse(image, exifrOrientationOptions)
+            } catch (error) {
+                console.warn(`Getting EXIF data failed - continuing without: ${src}: ${error.message}`)
             }
-            image.onerror = errorEvt => {
-                reject(new Error(`Loading image failed: ${src}`))
-            }
-            image.src = src
-        })
+            orientation = exifData && exifData.Orientation || ExifOrientation.Up
+            const switchSides = (orientation == ExifOrientation.Left) || (orientation == ExifOrientation.Right)
+            width = switchSides ? image.height : image.width
+            height = switchSides ? image.width : image.height
+            if (profiler) profiler.addPoint('Loaded Exif orientation')
+        }
+
+        const textureId = this.gl.createTexture()
+        if (!textureId) {
+            throw new Error('Creating WebGL texture failed')
+        }
+        gl.bindTexture(gl.TEXTURE_2D, textureId)
+
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+
+        if (textureSource instanceof HTMLImageElement) {
+            gl.texImage2D(gl.TEXTURE_2D, 0, this.internalFormat, srcFormat, srcType, textureSource)
+        } else {
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, textureSource)
+        }
+
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        if (profiler) profiler.addPoint('Created texture')
+
+        return new Texture(gl, textureId, width, height, orientation)
     }
 
 }
@@ -153,7 +232,9 @@ export class GraphicBuffer {
 
 export class Texture {
 
-    constructor(private gl: WebGLRenderingContext, public textureId: WebGLTexture, readonly width: number, readonly height: number) {
+    constructor(private gl: WebGLRenderingContext, public textureId: WebGLTexture,
+        readonly width: number, readonly height: number, readonly orientation: ExifOrientation = ExifOrientation.Up)
+    {
     }
 
     destroy() {
@@ -178,8 +259,8 @@ export class Texture {
 }
 
 
-export type ShaderParameter = Texture | Float32Array | number
-export type ShaderParameterMap = { [key:string]:ShaderParameter }
+export type ShaderParameter = Texture | Float32Array | mat4 | number
+export type ShaderParameterMap = { [key: string]: ShaderParameter }
 
 export class ShaderProgram<Uniforms extends ShaderParameterMap> {
 
@@ -277,7 +358,7 @@ export class StandardShaderProgram<Uniforms extends ShaderParameterMap> extends 
     /**
      * Sets the vertex buffer.
      *
-     * @param vertexBuffer the buffer from which to read vertexes
+     * @param vertexBuffer the buffer from which to read vertices
      * @param subsetSize the number of values to get - if only a subset of the component is needed (e.g. `3` if you need `x, y, z` from `x, y, z, u, v`)
      * @param subsetOffset the offset of the values to get - if only a subset of the component is needed (e.g. `0` if you need `x, y, z` from `x, y, z, u, v`)
      */
@@ -290,7 +371,7 @@ export class StandardShaderProgram<Uniforms extends ShaderParameterMap> extends 
     /**
      * Sets the texture coordinates buffer.
      *
-     * @param textureCoordBuffer the buffer from which to read texture corrdinates
+     * @param textureCoordBuffer the buffer from which to read texture coordinates
      * @param subsetSize the number of values to get - if only a subset of the component is needed (e.g. `2` if you need `u, v` from `x, y, z, u, v`)
      * @param subsetOffset the offset of the values to get - if only a subset of the component is needed (e.g. `3` if you need `u, v` from `x, y, z, u, v`)
      */
@@ -327,7 +408,7 @@ export class StandardShaderProgram<Uniforms extends ShaderParameterMap> extends 
             } else if (typeof value === 'number') {
                 gl.uniform1f(location, value)
             } else {
-                throw new Error('Attempted to set uniform "' + name + '" to invalid value ' + (value || 'undefined').toString())
+                throw new Error('Attempted to set uniform "' + name + '" to invalid value ' + ((value as any) || 'undefined').toString())
             }
         }
         return this

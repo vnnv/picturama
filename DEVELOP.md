@@ -20,7 +20,8 @@ Directory structure
         +-- test-ui/          Code running in renderer electron process of UI Tester
         +-- typings/          TypeScript type definitions
     +-- submodules/           Third-party projects fetched as git submodules
-    +-- test-data/            Data used for testing
+        +-- node-libraw/      Own fork of node-libraw
+        +-- test-data/        Data used for testing
 
 
 
@@ -29,7 +30,7 @@ Build from sources
 
 Prerequirements:
 
-  - Install yarn (Mac OS: `brew install yarn`)
+  - Install yarn (Mac OS: `brew install yarn` or just `npm install -g yarn`)
     - **Note:** It's important to use yarn instead of npm for
       [getting smaller distributable packages](https://github.com/electron-userland/electron-builder/issues/1147#issuecomment-276284477)
   - Mac OS: Install Xcode and start it once. You can close Xcode after the "required components" have been installed.
@@ -40,17 +41,19 @@ Fetch git submodules:
 
 Fetch dependencies and build and start Picturama:
 
-```bash
-yarn
-yarn start
-```
+    yarn
+    yarn start
 
 If you get an error with `node-gyp rebuild` then delete `~/.node-gyp` and try again:
 
-```bash
-rm -rf ~/.node-gyp
-yarn
-```
+    rm -rf ~/.node-gyp
+    yarn
+
+Development hotkeys:
+
+  - Toggle developer tools: `Shift`+`Ctrl`+`I` (On Mac: `Cmd`+`Shift`+`I`)
+  - Toggle UI tester:       `Shift`+`Ctrl`+`T` (On Mac: `Cmd`+`Shift`+`T`)
+  - Reload UI:              `Shift`+`Ctrl`+`R` (On Mac: `Cmd`+`Shift`+`R`)
 
 
 
@@ -61,16 +64,14 @@ If you change code that runs in the main process, you have to restart Picturama 
 Here's how you can use a watch build in order to reduce turnaround time:
 
 1. Run watch build (in extra console):
-    ```bash
-    yarn run watch
-    ```
+
+        yarn run watch
 
 2. Change your code.
 
 3. Restart Picturama without building (since building is done by the watch):
-    ```bash
-    yarn run start-no-build
-    ```
+
+        yarn run start-no-build
 
 
 
@@ -94,6 +95,10 @@ Run unit tests:
 
     yarn run test
 
+Run unit tests in watch mode:
+
+    npm run test:watch
+
 Run a single test in watch mode (example runs test `simple import`):
 
     npx jest -t 'simple import' --watch
@@ -108,14 +113,12 @@ UI Tester
 ---------
 
 1. Run watch build:
-    ```bash
-    yarn run watch
-    ```
+
+        yarn run watch
 
 2. Run Picturama (in extra console):
-    ```bash
-    yarn run start-no-build
-    ```
+
+        yarn run start-no-build
 
 3. Open the UI Tester: `Shift`+`Ctrl`+`T` (On Mac: `Alt`+`Cmd`+`T`)
 
@@ -124,6 +127,15 @@ UI Tester
 5. Wait for the watch build to build the changes
 
 6. Reload UI Tester: `Shift`+`Ctrl`+`R` (On Mac: `Cmd`+`Shift`+`R`)
+
+
+
+Add missing attributes to localization files
+--------------------------------------------
+
+Add missing attributes to `src/common/i18n/text_*.ts`:
+
+    yarn run i18n
 
 
 
@@ -183,6 +195,8 @@ I18N
 
 The following files provide I18N:
 
+  - `.github/workflows/codespell.yml` - The `text_*.ts` have to be excluded from codespell checks, since it only checks
+    the English language.
   - `package.json` - Defines languagues available in mac package (see key `electronLanguages`)
   - `src/common/i18n/i18n.ts` - Defines available languages and provides the I18N logic
   - `src/common/i18n/text_*.ts` - Holds the I18N messages for each language

@@ -10,7 +10,6 @@
     position: absolute;
     left: 0;
     right: 0;
-    transition: right @transition-time ease-out;
 
     .PhotoDetailPane.hasRightSidebar & {
         right: @sidebarWidth;
@@ -22,7 +21,7 @@
 .PhotoDetailPane-zoomPane {
     position: relative;
     display: inline-block;
-    margin-right: 8px;
+    margin: 0 8px;
     width: 50px;
     -webkit-app-region: none;
     min-width: 0;

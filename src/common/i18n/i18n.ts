@@ -1,21 +1,28 @@
 import moment from 'moment'  // This includes locale 'en'
+import 'moment/locale/cs'
 import 'moment/locale/de'
+import 'moment/locale/es'
+import 'moment/locale/fr'
 
+import text_cs from './text_cs'
 import text_de from './text_de'
 import text_en from './text_en'
 import text_es from './text_es'
+import text_fr from './text_fr'
 
 
-export type Locale = 'de' | 'en' | 'es'
-export const locales = [ 'de', 'en', 'es' ]
+export type Locale = 'cs' | 'de' | 'en' | 'es' | 'fr'
+export const locales = [ 'cs', 'de', 'en', 'es', 'fr' ]
 
 export const fallbackLocale: Locale = 'en'
 export type I18nKey = keyof typeof text_en
 
 const textsByLang: { [K in Locale]: { [K in I18nKey]: string } } = {
+    cs: text_cs,
     de: text_de,
     en: text_en,
-    es: text_es as any,
+    es: text_es,
+    fr: text_fr,
 }
 
 const msgFormatRe = /\{(\d+)\}/g
@@ -59,6 +66,13 @@ export function msg(key: I18nKey, ...args: any[]): string {
     } else {
         return text
     }
+}
+
+export function hasMsg(key: string): key is I18nKey {
+    if (!locale) {
+        throw new Error('msg was called before locale was set')
+    }
+    return !!textsByLang[locale][key]
 }
 
 export function splitMsg(key: I18nKey): string[] {

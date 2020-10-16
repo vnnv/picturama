@@ -88,8 +88,8 @@ class ImportScannerDelegateImpl implements ImportScannerDelegate {
     nextTempRawConversionPaths(): { tempExtractThumbPath: string, tempNonRawImgPath: string } {
         const tempRawConversionId = this.nextTempRawConversionId++
         return {
-            tempExtractThumbPath: `${config.tmp}/non-raw-${tempRawConversionId}.jpg`,
-            tempNonRawImgPath: `${config.nonRawPath}/temp-${tempRawConversionId}.${config.workExt}`
+            tempExtractThumbPath: `${config.tmp}/temp-thumb-${tempRawConversionId}.jpg`,
+            tempNonRawImgPath: `${config.nonRawPath}/temp-non-raw-${tempRawConversionId}.${config.workExt}`
         }
     }
 
@@ -98,7 +98,7 @@ class ImportScannerDelegateImpl implements ImportScannerDelegate {
         if (tempNonRawImgPath) {
             const nonRawPath = getNonRawPath(photo)
             if (nonRawPath === masterFullPath) {
-                // Should not happen - but we check this just to be shure...
+                // Should not happen - but we check this just to be sure...
                 throw new Error(`Expected non-raw path to differ original image path: ${nonRawPath}`)
             }
             await fsRename(tempNonRawImgPath, nonRawPath)

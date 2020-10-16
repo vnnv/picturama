@@ -8,6 +8,7 @@ import AppWindowController from 'background/AppWindowController'
 import { exportPhoto } from 'background/ExportController'
 import ForegroundClient from 'background/ForegroundClient'
 import { startImport, toggleImportPaused, cancelImport } from 'background/ImportController'
+import { readMetadataOfImage, getExifData } from 'background/MetaData'
 import { fetchPhotoWorkOfPhoto, storePhotoWork } from 'background/store/PhotoWorkStore'
 import { fetchTotalPhotoCount, fetchSections, updatePhotos, fetchPhotoDetail, fetchSectionPhotos, emptyTrash } from 'background/store/PhotoStore'
 import { fetchSettings, storeSettings } from 'background/store/SettingsStore'
@@ -56,8 +57,10 @@ async function executeBackgroundAction(action: string, params: any): Promise<any
         return waitForBackgroundReadyPromise
     } else if (action === 'toggleFullScreen') {
         AppWindowController.toggleFullScreen()
-    } else if (action === 'toggleMaximized') {
-        AppWindowController.toggleMaximized()
+    } else if (action === 'toggleUiTester') {
+        AppWindowController.toggleUiTester()
+    } else if (action === 'reloadUi') {
+        AppWindowController.reloadUi()
     } else if (action === 'fetchUiConfig') {
         return Promise.resolve(uiConfig)
     } else if (action === 'fetchSettings') {
@@ -67,6 +70,10 @@ async function executeBackgroundAction(action: string, params: any): Promise<any
     } else if (action === 'getFileSize') {
         const stat = await fsStat(params.path)
         return stat.size
+    } else if (action === 'readMetadataOfImage') {
+        return readMetadataOfImage(params.imagePath)
+    } else if (action === 'getExifData') {
+        return getExifData(params.path)
     } else if (action === 'selectScanDirectories') {
         const result = await dialog.showOpenDialog(AppWindowController.getAppWindow(), { properties: [ 'openDirectory', 'multiSelections' ] })
         return result.canceled ? undefined : result.filePaths

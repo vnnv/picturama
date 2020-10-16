@@ -1,6 +1,11 @@
 @import "../../style/variables.less";
 
 
+.App-windowControls {
+    z-index: 100;
+    border-left: 1px solid @blue-grey-900;
+}
+
 .App-container {
     position: absolute !important;
     top: 0;
@@ -15,4 +20,8 @@
     width: 100%;
     height: 100%;
     z-index: 10;
+}
+
+.App-globalError {
+    background: @blue-grey-100;
 }

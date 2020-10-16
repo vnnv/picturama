@@ -6,6 +6,9 @@ export default {
     common_error_photoNotExisting: 'Foto ist nicht mehr da',
     common_error_photoNotExisting_desc: 'Dieses Foto nicht mehr da wo es beim letzten Scan war. Evtl. wurde es verschoben, gelöscht oder es befindet sich auf einem Datenträger, der nun nicht mehr angeschlossen ist.',
 
+    App_error_noWebGL_title: 'Kein WebGL',
+    App_error_noWebGL_desc: 'Picturama benötigt eine Grafikkarte mit 3D-Beschleunigung um zu funktionieren. Bitte schaue in den System-Einstellungen, ob Du 3D-Beschleunigung aktivieren kannst und starte Picturama dann neu.',
+
     CropModeToolbar_aspect_free: 'Frei',
     CropModeToolbar_aspect_original: 'Original',
     CropModeToolbar_aspect_square: 'Quadrat',
@@ -88,6 +91,19 @@ export default {
     LibraryTopBar_moveToTrash: 'In Betriebsystem-Papierkorb verschieben',
     LibraryTopBar_emptyTrash: 'Papierkorb leeren',
 
+    MainMenu_version: `Version {0}`,
+    MainMenu_settings: 'Einstellungen',
+    MainMenu_quit: `Beenden`,
+    MainMenu_file: `Datei`,
+    MainMenu_export: `Fotos exportieren`,
+    MainMenu_scan: `Nach Fotos scannen`,
+    MainMenu_view: `Ansicht`,
+    MainMenu_toggleFullScreen: `Vollbildmodus wechseln`,
+    MainMenu_developer: `Entwickler`,
+    MainMenu_toggleDevTools: `Entwickler-Tools anzeigen`,
+    MainMenu_toggleUiTester: `UI-Tester anzeigen`,
+    MainMenu_reloadUi: `Oberfläche neu laden`,
+
     Picture_error_createThumbnail: 'Konnte Vorschaubild nicht erstellen',
 
     PhotoActionButtons_movedToTrash_one: 'Foto wurde in den Papierkorb gelegt',
@@ -105,8 +121,18 @@ export default {
     PhotoInfo_title: 'Info',
     PhotoInfo_showInFolder: 'Foto in Ordner anzeigen',
     PhotoInfo_copyPath: 'Pfad kopieren',
+    PhotoInfo_copyCoordinates: 'GPS-Koordinaten kopieren',
     PhotoInfo_noSelection_title: 'Kein Foto ausgewählt',
     PhotoInfo_noSelection_message: 'Bitte wähle links ein Foto aus.',
+    PhotoInfo_exifData: 'Exif-Daten',
+    PhotoInfo_show: 'anzeigen',
+    PhotoInfo_hide: 'ausblenden',
+    PhotoInfo_showAll: 'alles zeigen',
+    PhotoInfo_showLess: 'weniger zeigen',
+    PhotoInfo_andMore: 'und {0} mehr',
+    PhotoInfo_exifTitle_ifd0: 'Bild (IFD0)',
+    PhotoInfo_exifTitle_ifd1: 'Vorschaubild (IFD1)',
+    PhotoInfo_noValue: 'Foto hat kein {0}',
     PhotoInfo_error_fetchPhotoSize: 'Fotogröße konnte nicht ermittelt werden',
 
     PhotoDetailPane_prevPhoto: 'Vorheriges Foto',

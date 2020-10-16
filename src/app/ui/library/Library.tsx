@@ -5,7 +5,7 @@ import { bindActionCreators } from 'redux'
 import { ipcRenderer } from 'electron'
 import { Button, NonIdealState, Spinner, MaybeElement, Icon, INonIdealStateProps } from '@blueprintjs/core'
 
-import { PhotoId, Photo, PhotoWork, PhotoSectionId, PhotoSectionById, isLoadedPhotoSection, PhotoDetail, PhotoFilterType } from 'common/CommonTypes'
+import { PhotoId, Photo, PhotoWork, PhotoSectionId, PhotoSectionById, isLoadedPhotoSection, PhotoDetail, PhotoFilterType, MetaData, ExifData } from 'common/CommonTypes'
 import { msg } from 'common/i18n/i18n'
 import CancelablePromise from 'common/util/CancelablePromise'
 import { bindMany } from 'common/util/LangUtil'
@@ -65,12 +65,13 @@ interface DispatchProps {
     getGridLayout: GetGridLayoutFunction
     getThumbnailSrc: (photo: Photo) => string
     getFileSize(path: string): Promise<number>
+    readMetadataOfImage(imagePath: string): Promise<MetaData>
+    getExifData(path: string): Promise<ExifData | null>
     createThumbnail: (sectionId: PhotoSectionId, photo: Photo) => CancelablePromise<string>
     setGridRowHeight: (gridRowHeight: number) => void
     setSelectedPhotos: (sectionId: PhotoSectionId | null, photoIds: PhotoId[]) => void
     setDetailPhotoById: (sectionId: PhotoSectionId, photoId: PhotoId) => void
     setInfoPhoto: (sectionId: PhotoSectionId | null, photoId: PhotoId | null) => void
-    toggleMaximized(): void
     openExport: (sectionId: PhotoSectionId, photoIds: PhotoId[]) => void
     setPhotosFlagged: (photos: Photo[], flag: boolean) => void
     setPhotoTags: (photo: Photo, tags: string[]) => void
@@ -223,7 +224,6 @@ export class Library extends React.Component<Props, State> {
                     isShowingTrash={props.libraryFilterType === 'trash'}
                     isShowingInfo={state.isShowingInfo}
                     photosCount={props.photoCount}
-                    toggleMaximized={props.toggleMaximized}
                     openExport={props.openExport}
                     updatePhotoWork={props.updatePhotoWork}
                     setPhotosFlagged={props.setPhotosFlagged}
@@ -275,6 +275,8 @@ export class Library extends React.Component<Props, State> {
                     tags={props.tags}
                     closeInfo={this.toggleShowInfo}
                     getFileSize={props.getFileSize}
+                    readMetadataOfImage={props.readMetadataOfImage}
+                    getExifData={props.getExifData}
                     setPhotoTags={props.setPhotoTags}
                 />
             </div>
@@ -319,10 +321,11 @@ const Connected = connect<StateProps, DispatchProps, OwnProps, AppState>(
         getGridLayout,
         getThumbnailSrc,
         getFileSize: BackgroundClient.getFileSize,
+        readMetadataOfImage: BackgroundClient.readMetadataOfImage,
+        getExifData: BackgroundClient.getExifData,
         createThumbnail,
         setDetailPhotoById,
         setInfoPhoto,
-        toggleMaximized: BackgroundClient.toggleMaximized,
         setPhotosFlagged,
         setPhotoTags,
         updatePhotoWork,
